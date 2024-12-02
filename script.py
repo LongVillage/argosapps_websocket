@@ -39,7 +39,10 @@ def insert_candle_into_db(symbol, interval, candle_data_values, pair_id):
     try:
         conn = pymysql.connect(host=host, port=port, user=user, passwd=password, db=db)
         cursor = conn.cursor()
-        query = "INSERT INTO Candlestick (PairID, DateTime, Open, High, Low, Close, Volume, OpenInterest) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+        query = """
+        INSERT INTO Candlestick (PairID, DateTime, Open, High, Low, Close, Volume, OpenInterest)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
         cursor.execute(query, (pair_id,) + candle_data_values)
         conn.commit()
         logging.info(f'Candle data for {symbol} ({interval}) inserted into DB at {candle_data_values[0]}')
@@ -47,18 +50,16 @@ def insert_candle_into_db(symbol, interval, candle_data_values, pair_id):
         logging.error(f"Error while inserting into MySQL: {e}")
     finally:
         conn.close()
-        print(f'Candle data for {symbol} ({interval}) inserted into DB')
 
 # Définition du callback pour les bougies
 async def candle_callback(candle_data, receipt_timestamp):
-    if candle_data.interval != '15m':
-        return  # Ignorer les bougies qui ne sont pas de 15 minutes
-    pair_id = pair_id_mapping.get(candle_data.symbol)
+    symbol = candle_data.symbol
+    pair_id = pair_id_mapping.get(symbol)
     if pair_id:
         # Récupérer les dernières données d'Open Interest
         with open_interest_lock:
-            open_interest = latest_open_interest.get(f"{candle_data.symbol}-PERP", 0)
-            print(f"{candle_data.symbol}-PERP: {open_interest}")
+            open_interest = latest_open_interest.get(f"{symbol}-PERP", 0)
+            print(f"{symbol}-PERP: {open_interest}")
 
         candle_data_values = (
             convert_to_sql_datetime(candle_data.timestamp),
@@ -69,7 +70,8 @@ async def candle_callback(candle_data, receipt_timestamp):
             float(candle_data.volume),
             float(open_interest)
         )
-        insert_candle_into_db(candle_data.symbol, candle_data.interval, candle_data_values, pair_id)
+
+        insert_candle_into_db(symbol, candle_data.interval, candle_data_values, pair_id)
 
 # Définition du callback pour l'Open Interest
 async def open_interest_handler(open_interest_data, receipt_timestamp):
@@ -78,13 +80,10 @@ async def open_interest_handler(open_interest_data, receipt_timestamp):
 
 def get_argos_pairs():
     try:
-        print("1234")
+        print("Fetching Argos pairs...")
         url = "https://bff.argos-apps.com/api/currencyPairs"
         response = requests.get(url)
-        print(response)
-        print("test")
         data = response.json()
-        print('test2')
         return data['currencyPairs']
     except requests.RequestException as e:
         logging.error(f"Error fetching Argos pairs: {e}")
@@ -110,14 +109,28 @@ def run_feed_handler():
             logging.error("Failed to fetch Argos pairs, stopping feed handler.")
             return
 
-        currency_pairs = ["BTC-USDT", "ETH-USDT", "BNB-USDT", "SOL-USDT", "XRP-USDT"]
+        # Récupérer les paires de devises à partir de argos_pairs
+        currency_pairs = parse_currency_pairs(argos_pairs)
         currency_perp_pairs = [pair + '-PERP' for pair in currency_pairs]
 
+        # Obtenir les symboles supportés par Binance et Binance Futures
         binancePairs = Binance.symbols()
         binanceFuturesPairs = BinanceFutures.symbols()
 
+        # Filtrer les paires pour ne garder que celles supportées par les exchanges
         common_pairs = [pair for pair in currency_pairs if pair in binancePairs]
         common_perp_pairs = [pair for pair in currency_perp_pairs if pair in binanceFuturesPairs]
+
+        # Afficher les informations pour le débogage
+        print(f"Total pairs from Argos: {len(currency_pairs)}")
+        print(f"Common pairs with Binance Spot: {len(common_pairs)}")
+        print(f"Common pairs with Binance Futures: {len(common_perp_pairs)}")
+
+        print("List of common pairs with Binance Spot:")
+        print(common_pairs)
+
+        print("List of common pairs with Binance Futures:")
+        print(common_perp_pairs)
 
         global pair_id_mapping
         pair_id_mapping = {
@@ -141,7 +154,7 @@ def run_feed_handler():
         f.add_feed(Binance(
             symbols=common_pairs,
             channels=[CANDLES],
-            candle_interval='15m',  # Utilisation de l'intervalle en chaîne de caractères
+            candle_interval='15m',  # Utilisation de l'intervalle de 15 minutes
             callbacks={CANDLES: candle_callback}
         ))
 
@@ -151,9 +164,6 @@ def run_feed_handler():
         logging.error(f"An error occurred in the feed handler: {e}")
 
 def restart_feed_process():
-    """
-    Termine en toute sécurité tout processus de gestionnaire de flux existant et en démarre un nouveau.
-    """
     global feed_process
     if feed_process and feed_process.is_alive():
         logging.info("Terminating the existing feed process.")
@@ -167,18 +177,12 @@ def restart_feed_process():
     feed_process.start()
 
 def scheduled_run(interval=43200):
-    """
-    Programme le gestionnaire de flux pour redémarrer à l'intervalle spécifié (par défaut toutes les 12 heures).
-    """
     while True:
         restart_feed_process()
         logging.info(f"Feed process restarted. Waiting {interval} seconds before next restart.")
         time.sleep(interval)
 
 def start_scheduled_run():
-    """
-    Démarre la logique de redémarrage programmé dans un thread séparé pour éviter de bloquer l'application principale.
-    """
     from threading import Thread
 
     logging.info("Starting scheduled feed handler management in a separate thread.")
