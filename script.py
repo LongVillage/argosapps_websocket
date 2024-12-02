@@ -9,6 +9,9 @@ from threading import Lock
 from datetime import datetime
 from pymysql.err import Error
 
+# Désactiver uvloop pour éviter l'erreur avec read_limit
+asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+
 from cryptofeed import FeedHandler
 from cryptofeed.defines import CANDLES, OPEN_INTEREST
 from cryptofeed.exchanges import Binance, BinanceFutures
@@ -48,29 +51,29 @@ def insert_candle_into_db(candle_data, pair_id):
         print('Candle data inserted into DB')
 
 # Définition du callback pour les bougies
-async def candle_callback(feed, symbol, timestamp, receipt_timestamp, open_price, close_price, high_price, low_price, volume, closed, interval):
-    pair_id = pair_id_mapping.get(symbol)
+async def candle_callback(candle_data, receipt_timestamp):
+    pair_id = pair_id_mapping.get(candle_data.symbol)
     if pair_id:
         # Récupérer les dernières données d'Open Interest
         with open_interest_lock:
-            open_interest = latest_open_interest.get(f"{symbol}-PERP", 0)
-            print(f"{symbol}-PERP: {open_interest}")
+            open_interest = latest_open_interest.get(f"{candle_data.symbol}-PERP", 0)
+            print(f"{candle_data.symbol}-PERP: {open_interest}")
 
-        candle_data = (
-            convert_to_sql_datetime(timestamp),
-            float(open_price),
-            float(high_price),
-            float(low_price),
-            float(close_price),
-            float(volume),
+        candle_data_values = (
+            convert_to_sql_datetime(candle_data.timestamp),
+            float(candle_data.open),
+            float(candle_data.high),
+            float(candle_data.low),
+            float(candle_data.close),
+            float(candle_data.volume),
             float(open_interest)
         )
-        insert_candle_into_db(candle_data, pair_id)
+        insert_candle_into_db(candle_data_values, pair_id)
 
 # Définition du callback pour l'Open Interest
-async def open_interest_handler(feed, symbol, open_interest, receipt_timestamp):
+async def open_interest_handler(open_interest_data, receipt_timestamp):
     with open_interest_lock:
-        latest_open_interest[symbol] = open_interest
+        latest_open_interest[open_interest_data.symbol] = open_interest_data.open_interest
 
 def get_argos_pairs():
     try:
