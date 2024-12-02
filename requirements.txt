@@ -1,4 +1,4 @@
-cryptofeed==1.9.0
+cryptofeed
 pymysql
 requests
-websockets==10.4
+websockets
