@@ -29,11 +29,16 @@ def convert_to_sql_datetime(timestamp_ms):
 
 # Fonction pour insérer les données de bougie dans la base de données
 def insert_candle_into_db(candle_data, pair_id):
-    host = "109.234.165.219"
+    #host = "109.234.165.219"
+    #port = 3306
+    #user = "tadu6635_papsi"
+    #password = ",6A(dhkN&08+"
+    #db = "tadu6635_candle_binance"
+    host = "db-argos-sql.cfc44smyuydl.eu-north-1.rds.amazonaws.com"
     port = 3306
-    user = "tadu6635_papsi"
-    password = ",6A(dhkN&08+"
-    db = "tadu6635_candle_binance"
+    user = "admin"
+    password = "!2#4%6AoEuId"
+    db = "argos_candle"
 
     try:
         conn = pymysql.connect(host=host, port=port, user=user, passwd=password, db=db)
