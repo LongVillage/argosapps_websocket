@@ -29,7 +29,7 @@ def convert_to_sql_datetime(timestamp_ms):
     return newTimestamp
 
 # Fonction pour insérer les données de bougie dans la base de données
-def insert_candle_into_db(candle_data, pair_id):
+def insert_candle_into_db(symbol, interval, candle_data_values, pair_id):
     host = "db-argos-sql.cfc44smyuydl.eu-north-1.rds.amazonaws.com"
     port = 3306
     user = "admin"
@@ -40,18 +40,19 @@ def insert_candle_into_db(candle_data, pair_id):
         conn = pymysql.connect(host=host, port=port, user=user, passwd=password, db=db)
         cursor = conn.cursor()
         query = "INSERT INTO Candlestick (PairID, DateTime, Open, High, Low, Close, Volume, OpenInterest) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-        cursor.execute(query, (pair_id,) + candle_data)
+        cursor.execute(query, (pair_id,) + candle_data_values)
         conn.commit()
-        logging.info('Candle data inserted into DB')
-
+        logging.info(f'Candle data for {symbol} ({interval}) inserted into DB at {candle_data_values[0]}')
     except Error as e:
         logging.error(f"Error while inserting into MySQL: {e}")
     finally:
         conn.close()
-        print('Candle data inserted into DB')
+        print(f'Candle data for {symbol} ({interval}) inserted into DB')
 
 # Définition du callback pour les bougies
 async def candle_callback(candle_data, receipt_timestamp):
+    if candle_data.interval != '15m':
+        return  # Ignorer les bougies qui ne sont pas de 15 minutes
     pair_id = pair_id_mapping.get(candle_data.symbol)
     if pair_id:
         # Récupérer les dernières données d'Open Interest
@@ -68,7 +69,7 @@ async def candle_callback(candle_data, receipt_timestamp):
             float(candle_data.volume),
             float(open_interest)
         )
-        insert_candle_into_db(candle_data_values, pair_id)
+        insert_candle_into_db(candle_data.symbol, candle_data.interval, candle_data_values, pair_id)
 
 # Définition du callback pour l'Open Interest
 async def open_interest_handler(open_interest_data, receipt_timestamp):
