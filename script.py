@@ -104,7 +104,7 @@ def run_feed_handler():
         #print (f"binanceFuturesPairs {binanceFuturesPairs}")
         common_pairs = [pair for pair in currency_pairs if pair in binancePairs]
         common_perp_pairs= [pair for pair in currency_perp_pairs if pair in binanceFuturesPairs]
-        #print (common_pairs)
+        print (common_pairs)
         #print (common_perp_pairs)
         global pair_id_mapping
         pair_id_mapping = {pair_symbol: argos_pair['id'] for pair_symbol in common_pairs for argos_pair in argos_pairs if argos_pair['baseCurrency']['symbol'].upper() + '-' + argos_pair['quoteCurrency']['symbol'].upper() == pair_symbol}
