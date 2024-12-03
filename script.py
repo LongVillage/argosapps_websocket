@@ -12,10 +12,11 @@ async def candle_callback(candle, receipt_timestamp):
 
 def main():
     f = FeedHandler()
-    symbols = ['BTC-USDT-1m']
+    symbols = ['BTC-USDT']  # Utiliser le symbole sans l'intervalle
     f.add_feed(Binance(
         symbols=symbols,
         channels=[CANDLES],
+        candle_interval='1m',  # Spécifier l'intervalle des bougies ici
         callbacks={CANDLES: candle_callback}
     ))
     f.run()
