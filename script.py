@@ -1,4 +1,6 @@
 import asyncio
+asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+
 import logging
 from cryptofeed import FeedHandler
 from cryptofeed.defines import CANDLES
@@ -12,11 +14,11 @@ async def candle_callback(candle, receipt_timestamp):
 
 def main():
     f = FeedHandler()
-    symbols = ['BTC-USDT']  # Utiliser le symbole sans l'intervalle
+    symbols = ['BTC-USDT']
     f.add_feed(Binance(
         symbols=symbols,
         channels=[CANDLES],
-        candle_interval='1m',  # Spécifier l'intervalle des bougies ici
+        candle_interval='1m',
         callbacks={CANDLES: candle_callback}
     ))
     f.run()
