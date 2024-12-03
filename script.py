@@ -12,7 +12,7 @@ async def candle_callback(candle, receipt_timestamp):
 
 def main():
     f = FeedHandler()
-    symbols = ['BTC-USDT-5m']
+    symbols = ['BTC-USDT-1m']
     f.add_feed(Binance(
         symbols=symbols,
         channels=[CANDLES],
