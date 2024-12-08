@@ -114,7 +114,7 @@ def run_feed_handler():
 
         logging.info(pair_id_mapping)
         #BINANCE
-        f.add_feed(BinanceFutures(symbols=common_perp_pairs, channels=[OPEN_INTEREST], callbacks={OPEN_INTEREST: OpenInterestCallback(open_interest_handler)}))
+        #f.add_feed(BinanceFutures(symbols=common_perp_pairs, channels=[OPEN_INTEREST], callbacks={OPEN_INTEREST: OpenInterestCallback(open_interest_handler)}))
         f.add_feed(Binance(symbols=common_pairs, channels=[CANDLES], candle_interval="15m", callbacks={CANDLES: CandleCallback(candle_callback)}))
         #f.add_feed(CoinBase(etc))
         
