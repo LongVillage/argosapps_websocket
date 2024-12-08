@@ -1,4 +1,4 @@
-cryptofeed==1.8
+cryptofeed==2.4
 pymysql
 requests
 websockets
