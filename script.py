@@ -93,9 +93,11 @@ def run_feed_handler():
         if not argos_pairs:
             logging.error("Failed to fetch Argos pairs, stopping feed handler.")
             return
-        # currency_pairs = parse_currency_pairs(argos_pairs)
+        currency_pairs = parse_currency_pairs(argos_pairs)
         
-        currency_pairs = ["BTC-USDT", "ETH-USDT", "BNB-USDT", "SOL-USDT", "XRP-USDT"]
+        
+        #currency_pairs = ["BTC-USDT", "ETH-USDT", "BNB-USDT", "SOL-USDT", "XRP-USDT"]
+        
         currency_perp_pairs = [pair+"-PERP" for pair in currency_pairs]
         
         binancePairs = Binance.symbols()
