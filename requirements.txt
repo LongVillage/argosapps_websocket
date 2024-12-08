@@ -1,5 +1,5 @@
 cryptofeed==2.4
 pymysql
 requests>=2.18.4
-websockets>=14.1
-aiohttp>=3.9.4
+websockets==10
+aiohttp>=3.9.1
