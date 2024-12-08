@@ -64,13 +64,13 @@ async def open_interest_handler(data, receipt_timestamp):
         latest_open_interest[data.symbol] = data.open_interest
 def get_argos_pairs():
     try:
-        print("1234")
+        logging.info("1234")
         url = "https://bff.argos-apps.com/api/currencyPairs"
         response = requests.get(url)
-        print(response)
-        print("test")
+        logging.info(response)
+        logging.info("test")
         data = response.json()
-        print('test2')
+        logging.info('test2')
         return data['currencyPairs']
     except requests.RequestException as e:
         logging.error(f"Error fetching Argos pairs: {e}")
@@ -99,18 +99,20 @@ def run_feed_handler():
         currency_perp_pairs = [pair+"-PERP" for pair in currency_pairs]
         
         binancePairs = Binance.symbols()
-        #print (f"binancePairs: {binancePairs}")
+        logging.info(f"binancePairs: {binancePairs}")
         binanceFuturesPairs = BinanceFutures.symbols()
-        #print (f"binanceFuturesPairs {binanceFuturesPairs}")
+        logging.info(f"binanceFuturesPairs {binanceFuturesPairs}")
         common_pairs = [pair for pair in currency_pairs if pair in binancePairs]
         common_perp_pairs= [pair for pair in currency_perp_pairs if pair in binanceFuturesPairs]
-        print (common_pairs)
-        #print (common_perp_pairs)
+        logging.info(common_pairs)
+        logging.info(common_perp_pairs)
         global pair_id_mapping
         pair_id_mapping = {pair_symbol: argos_pair['id'] for pair_symbol in common_pairs for argos_pair in argos_pairs if argos_pair['baseCurrency']['symbol'].upper() + '-' + argos_pair['quoteCurrency']['symbol'].upper() == pair_symbol}
         if f is not None:
             f.stop()
         f = FeedHandler()
+
+        logging.info(pair_id_mapping)
         #BINANCE
         f.add_feed(BinanceFutures(symbols=common_perp_pairs, channels=[OPEN_INTEREST], callbacks={OPEN_INTEREST: OpenInterestCallback(open_interest_handler)}))
         f.add_feed(Binance(symbols=common_pairs, channels=[CANDLES], candle_interval="15m", callbacks={CANDLES: CandleCallback(candle_callback)}))
